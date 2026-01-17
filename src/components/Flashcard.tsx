@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Word, words, getWordSets, getWordsInRange, shuffleWords } from '@/data/words';
 
-type SetSize = 50 | 100 | 300 | 'all';
+type SetSize = 50 | 100;
 type GameState = 'setup' | 'playing' | 'finished';
 
 export default function Flashcard() {
@@ -43,7 +43,10 @@ export default function Flashcard() {
   const startGame = () => {
     if (!selectedSet) return;
     const wordsInRange = getWordsInRange(selectedSet.start, selectedSet.end);
-    setCurrentWords(shuffleWords(wordsInRange));
+    const shuffled = shuffleWords(wordsInRange);
+    // setSize分だけ取得（範囲内の単語数より多い場合は全部）
+    const wordsToStudy = shuffled.slice(0, Math.min(setSize, shuffled.length));
+    setCurrentWords(wordsToStudy);
     setCurrentIndex(0);
     setIsFlipped(false);
     setTimer(0);
@@ -131,7 +134,8 @@ export default function Flashcard() {
     setIsFlipped(false);
   };
 
-  const wordSets = setSize === 'all' ? [] : getWordSets(setSize);
+  // 300語ずつの範囲を生成
+  const rangeSets = getWordSets(300);
 
   // Setup screen
   if (gameState === 'setup') {
@@ -143,11 +147,11 @@ export default function Flashcard() {
 
         {/* Set size selection */}
         <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl mb-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">セット数を選択</h2>
-          <div className="grid grid-cols-2 gap-3">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">1回の学習語数</h2>
+          <div className="flex gap-4">
             <button
-              onClick={() => { setSetSize(50); setSelectedSet(null); }}
-              className={`py-3 rounded-xl font-semibold transition-all ${
+              onClick={() => setSetSize(50)}
+              className={`flex-1 py-3 rounded-xl font-semibold transition-all ${
                 setSize === 50
                   ? 'bg-purple-600 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -156,8 +160,8 @@ export default function Flashcard() {
               50語
             </button>
             <button
-              onClick={() => { setSetSize(100); setSelectedSet(null); }}
-              className={`py-3 rounded-xl font-semibold transition-all ${
+              onClick={() => setSetSize(100)}
+              className={`flex-1 py-3 rounded-xl font-semibold transition-all ${
                 setSize === 100
                   ? 'bg-purple-600 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -165,59 +169,40 @@ export default function Flashcard() {
             >
               100語
             </button>
-            <button
-              onClick={() => { setSetSize(300); setSelectedSet(null); }}
-              className={`py-3 rounded-xl font-semibold transition-all ${
-                setSize === 300
-                  ? 'bg-purple-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              300語
-            </button>
-            <button
-              onClick={() => { setSetSize('all'); setSelectedSet({ start: 1, end: words.length }); }}
-              className={`py-3 rounded-xl font-semibold transition-all ${
-                setSize === 'all'
-                  ? 'bg-purple-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              全範囲
-            </button>
           </div>
         </div>
 
         {/* Range selection */}
-        {setSize !== 'all' && (
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl mb-6 max-h-[40vh] overflow-y-auto">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">範囲を選択</h2>
-            <div className="grid gap-2">
-              {wordSets.map((set, index) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedSet(set)}
-                  className={`w-full py-3 px-4 rounded-xl font-medium text-left transition-all ${
-                    selectedSet?.start === set.start
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {set.label}
-                </button>
-              ))}
-            </div>
+        <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl mb-6 max-h-[40vh] overflow-y-auto">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">範囲を選択</h2>
+          <div className="grid gap-2">
+            {/* Full range option */}
+            <button
+              onClick={() => setSelectedSet({ start: 1, end: words.length, label: `全範囲 (No.1 - No.${words.length})` })}
+              className={`w-full py-3 px-4 rounded-xl font-medium text-left transition-all ${
+                selectedSet?.start === 1 && selectedSet?.end === words.length
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              全範囲 ({words.length}語)
+            </button>
+            {/* 300-word range options */}
+            {rangeSets.map((set, index) => (
+              <button
+                key={index}
+                onClick={() => setSelectedSet(set)}
+                className={`w-full py-3 px-4 rounded-xl font-medium text-left transition-all ${
+                  selectedSet?.start === set.start && selectedSet?.end !== words.length
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {set.label}
+              </button>
+            ))}
           </div>
-        )}
-
-        {setSize === 'all' && (
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl mb-6">
-            <div className="text-center">
-              <p className="text-gray-600 mb-2">全 {words.length} 語をランダムに学習します</p>
-              <p className="text-sm text-gray-400">No.1 〜 No.{words.length}</p>
-            </div>
-          </div>
-        )}
+        </div>
 
         {/* Start button */}
         <button
