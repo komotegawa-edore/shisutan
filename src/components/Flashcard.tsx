@@ -178,7 +178,7 @@ export default function Flashcard() {
           <div className="grid gap-2">
             {/* Full range option */}
             <button
-              onClick={() => setSelectedSet({ start: 1, end: words.length, label: `全範囲 (No.1 - No.${words.length})` })}
+              onClick={() => setSelectedSet({ start: 1, end: words.length })}
               className={`w-full py-3 px-4 rounded-xl font-medium text-left transition-all ${
                 selectedSet?.start === 1 && selectedSet?.end === words.length
                   ? 'bg-purple-600 text-white'
